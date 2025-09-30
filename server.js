@@ -1,21 +1,21 @@
 require('dotenv').config();
 const express = require('express');
 const nodemailer = require('nodemailer');
-const cors = require('cors'); // allow frontend requests
+const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
-app.use(cors()); // enable CORS for all origins
+app.use(cors());
 
-// Nodemailer setup
+// Nodemailer setup with environment variables
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: "amolequwam96@gmail.com",
-        pass: "aajj nrqj qixg oeas"
+        user: process.env.EMAIL_USER,  // ✅ Use environment variable
+        pass: process.env.EMAIL_PASS   // ✅ App password stored in Render
     }
 });
 
@@ -27,7 +27,6 @@ let orders = [];
  * ==============================
  */
 
-// Checkout endpoint
 // Checkout endpoint
 app.post('/api/checkout', (req, res) => {
     console.log("✅ Checkout route hit");
@@ -41,14 +40,14 @@ app.post('/api/checkout', (req, res) => {
     const order = { orderId, name, email, address, cart, paymentMethod, total, status: 'Pending' };
     orders.push(order);
 
-    // Format ordered items into readable text
+    // Format ordered items
     const itemsList = cart.map(item =>
         `${item.product.name} (x${item.quantity}) - ₦${(item.product.price * item.quantity).toLocaleString()}`
     ).join("\n");
 
     // User email
     const userMailOptions = {
-        from: "amolequwam96@gmail.com",
+        from: process.env.EMAIL_USER,
         to: email,
         subject: `Your Order Confirmation - ${orderId}`,
         text: `Dear ${name},\n\nThank you for your order!\n\nOrder ID: ${orderId}\n\n📦 Ordered Items:\n${itemsList}\n\n💳 Payment Method: ${paymentMethod}\n📍 Delivery Address: ${address}\n\nTotal: ₦${total.toLocaleString()}\n\nWe’ll notify you once your order is shipped.\n\nBest regards,\nMouth Munchers`
@@ -56,8 +55,8 @@ app.post('/api/checkout', (req, res) => {
 
     // Admin email
     const adminMailOptions = {
-        from: "amolequwam96@gmail.com",
-        to: "amolequwam96@gmail.com",
+        from: process.env.EMAIL_USER,
+        to: process.env.ADMIN_EMAIL,
         subject: `New Order Received - ${orderId}`,
         text: `New order received!\n\nOrder ID: ${orderId}\nCustomer: ${name}\nEmail: ${email}\nAddress: ${address}\nPayment: ${paymentMethod}\n\n📦 Items Ordered:\n${itemsList}\n\nTotal: ₦${total.toLocaleString()}`
     };
@@ -72,7 +71,6 @@ app.post('/api/checkout', (req, res) => {
             res.status(500).json({ success: false, error: 'Failed to send emails' });
         });
 });
-
 
 // Order tracking endpoint
 app.get('/api/order/:orderId', (req, res) => {
